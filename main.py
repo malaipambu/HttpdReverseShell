@@ -13,21 +13,29 @@ def arguments():
     return args.ip
 
 def setTargetFile(ip):
-    with open('client.py', 'r') as file :
-        filedata = file.read()
-    find='SERVER=None'
-    replace=f'SERVER = "http://{ip}"'
-    filedata = filedata.replace(find, replace)
-    with open('target.py', 'w') as file:
-        file.write(filedata)
+    try:
+        with open('client.py', 'r') as file :
+            filedata = file.read()
+        find='server=None'
+        replace=f'server = "http://{ip}"'
+        filedata = filedata.replace(find, replace)
+        with open('target.py', 'w') as file:
+            file.write(filedata)
+    except PermissionError as e:
+        print("You need write permission better try out with sudo")
+
+    except Exception as e:
+        print(str(e)) 
 
 def makeFolders():
-    if not os.path.exists("uploads"):
-        os.mkdir("uploads")  
-    if not os.path.exists("downloads"):
-        os.mkdir("downloads")  
+    try:
+        if not os.path.exists("uploads"):
+            os.mkdir("uploads")  
+        if not os.path.exists("downloads"):
+            os.mkdir("downloads")  
+    except Exception as e:
+        print(str(e))
         
-
 def main():
     IP=arguments()
     setTargetFile(IP)
@@ -43,7 +51,7 @@ def main():
             break
             os.remove('target.py')
         except PermissionError as e:
-            print ("Try out with sudo")
+            print (f"Cant start the server on {IP}:80  Try out with sudo")
             os.remove('target.py')
             break      
 
