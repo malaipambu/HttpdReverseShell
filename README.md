@@ -6,7 +6,7 @@ I coded this from a attacker perspective so just the HTTP protocol is highly lik
 
 ## Prerequisites
 
-- Python 2.7 or Python 3.x
+- Python 3.x
 - An Apache HTTP server vulnerable to CVE-2019-0211
 
 ## Installation
